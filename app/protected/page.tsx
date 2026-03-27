@@ -19,6 +19,13 @@ export default async function DashboardPage() {
     return redirect("/auth/login");
   }
 
+  // Recupero il profilo dell'utente loggato per avere il nome corretto
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single();
+
   // Recuperiamo gli avvisi dal DB, mettendo in cima quelli "fissati" (pinned) e poi i più recenti
   const { data } = await supabase
     .from('announcements')
@@ -33,7 +40,7 @@ export default async function DashboardPage() {
       <header>
         <h1 className="text-2xl font-bold text-gray-900">Bacheca Avvisi</h1>
         <p className="text-gray-500 mt-1">
-          Ciao {user.user_metadata?.full_name || user.email?.split('@')[0]}, ecco le ultime novità.
+          Ciao {profile?.full_name || 'Associato'}, ecco le ultime novità.
         </p>
       </header>
 
