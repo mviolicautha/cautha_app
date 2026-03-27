@@ -1,4 +1,4 @@
-import Navigation from "@/components/Navigation"; // Usa il percorso corretto (../../ o ../) se necessario
+import Navigation from "@/components/Navigation";
 
 export default function ProtectedLayout({
   children,
@@ -6,10 +6,17 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    // Aggiungo flex e text-black per forzare il tema chiaro se il genitore è scuro
+    <div className="min-h-screen bg-gray-50 text-black flex flex-col">
+      {/* Il menu di navigazione */}
       <Navigation />
-      {/* Contenitore principale: su mobile aggiunge padding in basso (per la nav), su desktop aggiunge margine a sinistra (per la sidebar) */}
-      <main className="pb-20 md:pb-8 md:pl-64 pt-8 px-4 max-w-7xl mx-auto w-full">
+      
+      {/* 
+        Il contenitore principale.
+        Uso flex-1 per fargli prendere tutto lo spazio disponibile.
+        Aggiungo pt-8 (padding top) per distanziare il contenuto dall'alto.
+      */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 md:pl-64 md:pb-8">
         {children}
       </main>
     </div>

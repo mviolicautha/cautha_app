@@ -121,9 +121,22 @@ export default function CalendarPage() {
   };
 
   // Funzione CREA
-  const handleBooking = async (e: React.FormEvent) => {
+   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot || !bookingTitle || !currentUserId) return;
+
+    // Aggiungo il recupero del profilo prima di salvare la prenotazione
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, job_title")
+      .eq("id", currentUserId)
+      .single();
+
+    const authorFullName = profile?.full_name || "Associato";
+    const authorJobTitle = profile?.job_title || "Membro";
+    
+    // Unisco il titolo inserito dall'utente con il suo nome e qualifica
+    const finalTitle = `${bookingTitle} - ${authorFullName} (${authorJobTitle})`;
 
     const startTime = new Date(selectedSlot);
     const endTime = addMinutes(startTime, selectedDuration);
@@ -131,7 +144,7 @@ export default function CalendarPage() {
     const { error } = await supabase.from("bookings").insert({
       resource_id: roomId,
       user_id: currentUserId,
-      title: bookingTitle,
+      title: finalTitle, // <-- Uso il titolo completo
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
     });
@@ -145,6 +158,7 @@ export default function CalendarPage() {
       setSelectedDate(new Date(selectedDate));
     }
   };
+
 
   // Funzione ELIMINA
   const handleDeleteBooking = async () => {
