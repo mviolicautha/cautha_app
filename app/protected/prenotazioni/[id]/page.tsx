@@ -13,7 +13,7 @@ interface Booking {
   end_time: string;
   title: string;
   resource_id: number;
-  user_id: string; // <-- Aggiunto user_id per il controllo
+  user_id: string;
 }
 
 interface Resource {
@@ -21,10 +21,19 @@ interface Resource {
   name: string;
   parent_id: number | null;
 }
+// Questa riga forza Next.js a non pre-renderizzare staticamente questa pagina
+// risolvendo definitivamente ogni problema di build legato ai parametri dinamici!
+export const dynamic = 'force-dynamic';
 
 export default function CalendarPage() {
   const params = useParams();
   const router = useRouter();
+
+  // FIX BUILD: Evitiamo il crash durante la fase di build (prerendering) se params è nullo o in fase di compilazione statica
+  if (!params || !params.id) {
+    return null;
+  }
+
   const roomId = Number(params.id);
   const supabase = createClient();
 
@@ -62,7 +71,6 @@ export default function CalendarPage() {
     async function fetchData() {
       setLoading(true);
       
-      // Prendo l'utente loggato per sapere chi è
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
 
@@ -120,12 +128,10 @@ export default function CalendarPage() {
     return durations;
   };
 
-  // Funzione CREA
-   const handleBooking = async (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot || !bookingTitle || !currentUserId) return;
 
-    // Aggiungo il recupero del profilo prima di salvare la prenotazione
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, job_title")
@@ -134,8 +140,6 @@ export default function CalendarPage() {
 
     const authorFullName = profile?.full_name || "Associato";
     const authorJobTitle = profile?.job_title || "Membro";
-    
-    // Unisco il titolo inserito dall'utente con il suo nome e qualifica
     const finalTitle = `${bookingTitle} - ${authorFullName} (${authorJobTitle})`;
 
     const startTime = new Date(selectedSlot);
@@ -144,7 +148,7 @@ export default function CalendarPage() {
     const { error } = await supabase.from("bookings").insert({
       resource_id: roomId,
       user_id: currentUserId,
-      title: finalTitle, // <-- Uso il titolo completo
+      title: finalTitle,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
     });
@@ -159,8 +163,6 @@ export default function CalendarPage() {
     }
   };
 
-
-  // Funzione ELIMINA
   const handleDeleteBooking = async () => {
     if (!bookingToDelete) return;
 
@@ -174,7 +176,7 @@ export default function CalendarPage() {
     } else {
       setIsDeleteModalOpen(false);
       setBookingToDelete(null);
-      setSelectedDate(new Date(selectedDate)); // Ricarica la vista
+      setSelectedDate(new Date(selectedDate));
     }
   };
 
@@ -218,7 +220,6 @@ export default function CalendarPage() {
             const booking = getBookingForSlot(slot);
             const isOccupied = !!booking;
             const isExternalBlock = booking && booking.resource_id !== roomId;
-            // Capiamo se la prenotazione è dell'utente loggato
             const isMyBooking = booking && booking.user_id === currentUserId;
 
             return (
@@ -238,7 +239,7 @@ export default function CalendarPage() {
                       }}
                       className={`p-3 rounded-lg border-l-4 ${
                         isMyBooking 
-                          ? 'bg-blue-50 border-blue-400 cursor-pointer hover:bg-blue-100' // Mostra che è cliccabile
+                          ? 'bg-blue-50 border-blue-400 cursor-pointer hover:bg-blue-100'
                           : isExternalBlock 
                             ? 'bg-amber-50 border-amber-400 opacity-80' 
                             : 'bg-red-50 border-red-400 opacity-80'
@@ -275,7 +276,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* Modal di PRENOTAZIONE */}
+      {/* Modal PRENOTAZIONE */}
       {isBookingModalOpen && selectedSlot && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 pb-8 transform transition-transform">
@@ -335,7 +336,7 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Modal di CANCELLAZIONE */}
+      {/* Modal CANCELLAZIONE */}
       {isDeleteModalOpen && bookingToDelete && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-2xl p-6 transform transition-transform">
@@ -344,7 +345,7 @@ export default function CalendarPage() {
             </div>
             <h2 className="text-xl font-bold text-center mb-2 text-gray-900">Rimuovi Prenotazione</h2>
             <p className="text-sm text-center text-gray-500 mb-6">
-              Sei sicuro di voler cancellare l'evento <strong>"{bookingToDelete.title}"</strong>?<br/>Questa azione non può essere annullata.
+              Sei sicuro di voler cancellare l'evento <strong>"{bookingToDelete.title.split(' - ')[0]}"</strong>?<br/>Questa azione non può essere annullata.
             </p>
             
             <div className="flex gap-3">
