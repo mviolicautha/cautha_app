@@ -1,8 +1,9 @@
 "use client";
 
+import { use } from "react"; // IMPORTANTE: Aggiungi use da react
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // Rimuovi useParams dall'import
 import { format, addDays, startOfToday, isSameDay, setHours, setMinutes, isBefore, addMinutes, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarIcon, ArrowLeftIcon, Trash2Icon } from "lucide-react";
@@ -21,20 +22,14 @@ interface Resource {
   name: string;
   parent_id: number | null;
 }
-// Questa riga forza Next.js a non pre-renderizzare staticamente questa pagina
-// risolvendo definitivamente ogni problema di build legato ai parametri dinamici!
-export const dynamic = 'force-dynamic';
 
-export default function CalendarPage() {
-  const params = useParams();
-  const router = useRouter();
-
-  // FIX BUILD: Evitiamo il crash durante la fase di build (prerendering) se params è nullo o in fase di compilazione statica
-  if (!params || !params.id) {
-    return null;
-  }
-
+// IMPORTANTE: Modifichiamo la firma per accettare la Promise di params
+export default function CalendarPage(props: { params: Promise<{ id: string }> }) {
+  // Scartiamo la Promise in modo sicuro e nativo
+  const params = use(props.params);
   const roomId = Number(params.id);
+  
+  const router = useRouter();
   const supabase = createClient();
 
   const [selectedDate, setSelectedDate] = useState(startOfToday());
