@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { UserCircleIcon, BriefcaseIcon, ShieldIcon, MailIcon, SettingsIcon } from "lucide-react";
 
-export default async function ProfilePage() {
+// 1. Spostiamo la logica dentro un componente asincrono interno
+async function ProfileContent() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -89,5 +91,18 @@ export default async function ProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+// 2. Il wrapper esportato di default che implementa Suspense
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }

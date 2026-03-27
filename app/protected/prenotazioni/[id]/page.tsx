@@ -1,9 +1,8 @@
 "use client";
 
-import { use } from "react"; // IMPORTANTE: Aggiungi use da react
+import { Suspense, useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Rimuovi useParams dall'import
 import { format, addDays, startOfToday, isSameDay, setHours, setMinutes, isBefore, addMinutes, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarIcon, ArrowLeftIcon, Trash2Icon } from "lucide-react";
@@ -23,13 +22,17 @@ interface Resource {
   parent_id: number | null;
 }
 
-// IMPORTANTE: Modifichiamo la firma per accettare la Promise di params
-export default function CalendarPage(props: { params: Promise<{ id: string }> }) {
-  // Scartiamo la Promise in modo sicuro e nativo
-  const params = use(props.params);
-  const roomId = Number(params.id);
-  
+// 1. Spostiamo tutta la logica dentro un componente interno
+function CalendarContent() {
+  const params = useParams();
   const router = useRouter();
+
+  // Protezione per la fase di pre-rendering statico
+  if (!params || !params.id) {
+    return null;
+  }
+
+  const roomId = Number(params.id);
   const supabase = createClient();
 
   const [selectedDate, setSelectedDate] = useState(startOfToday());
@@ -38,10 +41,8 @@ export default function CalendarPage(props: { params: Promise<{ id: string }> })
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Stati Modals
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
   const [bookingTitle, setBookingTitle] = useState("");
@@ -271,7 +272,6 @@ export default function CalendarPage(props: { params: Promise<{ id: string }> })
         )}
       </div>
 
-      {/* Modal PRENOTAZIONE */}
       {isBookingModalOpen && selectedSlot && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 pb-8 transform transition-transform">
@@ -331,7 +331,6 @@ export default function CalendarPage(props: { params: Promise<{ id: string }> })
         </div>
       )}
 
-      {/* Modal CANCELLAZIONE */}
       {isDeleteModalOpen && bookingToDelete && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-2xl p-6 transform transition-transform">
@@ -363,5 +362,18 @@ export default function CalendarPage(props: { params: Promise<{ id: string }> })
         </div>
       )}
     </div>
+  );
+}
+
+// 2. Il componente esportato diventa SOLO un wrapper con Suspense
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <CalendarContent />
+    </Suspense>
   );
 }

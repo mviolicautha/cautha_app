@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +11,8 @@ interface Resource {
   created_at: string;
 }
 
-export default async function PrenotazioniPage() {
+// 1. Spostiamo la logica dentro un componente asincrono interno
+async function PrenotazioniContent() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -86,5 +88,18 @@ export default async function PrenotazioniPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+// 2. Il wrapper esportato di default che implementa Suspense
+export default function PrenotazioniPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <PrenotazioniContent />
+    </Suspense>
   );
 }

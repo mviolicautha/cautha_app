@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-export default async function AdminPanel() {
+// 1. Spostiamo la logica dentro un componente asincrono interno
+async function AdminContent() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -89,7 +91,6 @@ export default async function AdminPanel() {
           </label>
         </div>
 
-
         <button 
           type="submit" 
           className="w-full py-3.5 mt-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm"
@@ -98,5 +99,18 @@ export default async function AdminPanel() {
         </button>
       </form>
     </div>
+  );
+}
+
+// 2. Il wrapper esportato di default che implementa Suspense
+export default function AdminPanel() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <AdminContent />
+    </Suspense>
   );
 }
