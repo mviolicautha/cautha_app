@@ -6,22 +6,18 @@ import { usePathname } from "next/navigation";
 import { 
   HomeIcon, 
   CalendarIcon, 
-  FolderIcon, 
-  UsersIcon, 
-  SettingsIcon,
-  BellIcon
+  UserCircleIcon 
 } from "lucide-react";
 
-// 1. Spostiamo tutta la logica di navigazione nel componente "Content"
+// 1. COMPONENTE INTERNO: Qui c'è la logica del menu e usePathname()
 function NavigationContent() {
   const pathname = usePathname();
 
-  // Mappa delle voci di menu. Modifica o aggiungi percorsi qui in base alle tue necessità
+  // Voci di menu originali ripristinate
   const navItems = [
     { name: "Bacheca", href: "/protected", icon: HomeIcon },
     { name: "Prenotazioni", href: "/protected/prenotazioni", icon: CalendarIcon },
-    { name: "Documenti", href: "/protected/documenti", icon: FolderIcon },
-    { name: "Iscritti", href: "/protected/iscritti", icon: UsersIcon },
+    { name: "Profilo", href: "/protected/profilo", icon: UserCircleIcon },
   ];
 
   return (
@@ -52,23 +48,6 @@ function NavigationContent() {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t space-y-1">
-          <Link
-            href="/protected/notifiche"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all"
-          >
-            <BellIcon className="w-5 h-5 text-gray-400" />
-            <span>Notifiche</span>
-          </Link>
-          <Link
-            href="/protected/impostazioni"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all"
-          >
-            <SettingsIcon className="w-5 h-5 text-gray-400" />
-            <span>Impostazioni</span>
-          </Link>
-        </div>
       </div>
 
       {/* BOTTOM BAR MOBILE */}
@@ -100,12 +79,12 @@ function NavigationContent() {
   );
 }
 
-// 2. Il componente esportato funge da wrapper per risolvere gli errori di Next.js 15+
+// 2. FIX DI COMPILAZIONE: Il componente esportato usa Suspense per aggirare il blocco di Next.js
 export default function Navigation() {
   return (
-    // Il fallback evita flash sgradevoli durante il caricamento fornendo gli ingombri vuoti
     <Suspense fallback={
       <>
+        {/* Placeholder mostrati durante il caricamento statico */}
         <div className="hidden md:flex flex-col w-64 bg-white border-r min-h-screen fixed top-0 left-0 animate-pulse bg-gray-50/50" />
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t z-50" />
       </>
