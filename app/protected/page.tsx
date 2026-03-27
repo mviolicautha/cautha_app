@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { Trash2Icon } from "lucide-react"; // Importiamo l'icona del cestino
 
-// Definiamo il tipo per gli avvisi
 interface Announcement {
   id: string;
   title: string;
@@ -19,14 +20,16 @@ export default async function DashboardPage() {
     return redirect("/auth/login");
   }
 
-  // Recupero il profilo dell'utente loggato per avere il nome corretto
+  // Recupero il profilo dell'utente loggato per avere il nome corretto e controllare se è admin
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name')
+    .select('full_name, role')
     .eq('id', user.id)
     .single();
 
-  // Recuperiamo gli avvisi dal DB, mettendo in cima quelli "fissati" (pinned) e poi i più recenti
+  const isAdmin = profile?.role === 'admin';
+
+  // Recuperiamo gli avvisi dal DB
   const { data } = await supabase
     .from('announcements')
     .select('*')
@@ -34,6 +37,25 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false });
 
   const announcements = (data as Announcement[]) || [];
+
+  // -------------------------------------------------------------
+  // SERVER ACTION: Funzione per eliminare l'annuncio
+  // -------------------------------------------------------------
+  const deleteAnnouncement = async (formData: FormData) => {
+    "use server";
+    const supabaseServer = await createClient();
+    const announcementId = formData.get("id") as string;
+
+    // Supabase controllerà automaticamente le RLS. 
+    // Se non sei admin, la query di delete fallirà silenziosamente in backend.
+    await supabaseServer
+      .from('announcements')
+      .delete()
+      .eq('id', announcementId);
+
+    // Ricarichiamo la pagina per far sparire la card all'istante
+    revalidatePath("/protected");
+  };
 
   return (
     <div className="space-y-6">
@@ -51,7 +73,7 @@ export default async function DashboardPage() {
           announcements.map((announcement) => (
             <div 
               key={announcement.id} 
-              className={`bg-white rounded-xl shadow-sm border p-6 relative overflow-hidden ${
+              className={`bg-white rounded-xl shadow-sm border p-6 relative overflow-hidden group ${
                 announcement.is_pinned ? 'border-indigo-200' : 'border-gray-200'
               }`}
             >
@@ -60,6 +82,20 @@ export default async function DashboardPage() {
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
               )}
               
+              {/* Tasto Cancella visibile SOLO AGLI ADMIN, in alto a destra */}
+              {isAdmin && (
+                <form action={deleteAnnouncement} className="absolute top-4 right-4">
+                  <input type="hidden" name="id" value={announcement.id} />
+                  <button 
+                    type="submit"
+                    className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Elimina Avviso"
+                  >
+                    <Trash2Icon className="w-5 h-5" />
+                  </button>
+                </form>
+              )}
+
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
@@ -79,13 +115,13 @@ export default async function DashboardPage() {
                 
                 {/* Etichetta se l'avviso è fissato */}
                 {announcement.is_pinned && (
-                  <span className="text-xs font-medium bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md">
+                  <span className="text-xs font-medium bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md mr-10">
                     Importante
                   </span>
                 )}
               </div>
               
-              <h2 className="text-xl font-bold text-gray-900 mb-2">{announcement.title}</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 pr-8">{announcement.title}</h2>
               <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
                 {announcement.content}
               </p>
